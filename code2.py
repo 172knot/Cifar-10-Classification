@@ -11,18 +11,20 @@ path = '/home/knot/Documents/Semester6/Dl/Assignment1/cifar-10-python/cifar-10-b
 
 def convolution_neural_network():
     X = tf.placeholder(tf.float32, [None, 32, 32, 3])
+    Y = tf.placeholder(tf.float32, [None, 10])
+    Y1 = tf.layers.conv2d(X, filters=32, kernel_size=[7, 7], strides=1, padding="same", activation=tf.nn.relu)
+    Y1 = tf.layers.batch_normalization(Y1, axis = -1, momentum=0.99, epsilon=0.001)
+    Y1 = tf.layers.max_pooling2d(Y1, ksize=[1,2,2,3], strides=[1,2,2,1], padding = 'same')
 
-    Y1 = tf.layers.conv2d(X, filters=32, kernel_size=[7, 7], padding="same", activation=tf.nn.relu)
-    Y1 = tf.layers.batch_normalization(Y1,axis = -1, momentum=0.99, epsilon=0.001)
-    Y1 = tf.layers.max_pooling2d(Y1, ksize=[1,2,2,3], strides=[1,2,2,1], padding = 'SAME')
+    dense = tf.reshape(Y1,[-1,32*32*32])
+    fc1 = tf.layers.dense(Y4, 1024, activation=tf.nn.relu)
+    fc2 = tf.layers.dense(fc1, 10)
+    Y = tf.nn.softmax(fc2)
 
-    fc = tf.reshape(Y1,[-1,7*7*64])
-    out = tf.layers.dense(inputs=fc, units=10, activation=tf.nn.relu)
+    return Y
 
-    return out
-
-def train_neural_network(x):
-    prediction = convolution_neural_network(x)
+def train_neural_network():
+    prediction = convolution_neural_network()
     cost = tf.reduce_mean( tf.nn.softmax_cross_entropy_with_logits(prediction,y) )
     optimizer = tf.train.AdamOptimizer().minimize(cost)
 
@@ -30,6 +32,12 @@ def train_neural_network(x):
     dict_ = pickle.load(fo, encoding='latin1')
     label = dict_['labels']
     data = dict_['data']
+
+    train_y = []
+    for i in range(len(label)):
+        temp = np.zeros([10])
+        temp[label[i]] = 1
+        train_y.append(temp)
 
     train_x = []
     for i in range(len(data)):
@@ -46,7 +54,6 @@ def train_neural_network(x):
 				end = i+batch_size
 				batch_x = np.array(train_x[start:end])
 				batch_y = np.array(train_y[start:end])
-
 				_, c = sess.run([optimizer, cost], feed_dict={x: batch_x, y: batch_y})
 				epoch_loss += c
 				i+=batch_size
@@ -56,6 +63,10 @@ def train_neural_network(x):
         # correct = tf.equal(tf.argmax(prediction, 1), tf.argmax(y, 1))
         # accuracy = tf.reduce_mean(tf.cast(correct, 'float'))
         # print('Accuracy:',accuracy.eval({x: batch_x, y:mnist.test.labels}))
+
+
+def main():
+    train_neural_network()
 
 
 
