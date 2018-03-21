@@ -4,9 +4,14 @@ import pickle
 import os
 import cv2
 
+
+tf.reset_default_graph()
+
+logs_path = "./logs"
 path = '/home/knot/Documents/Semester6/Dl/Assignment1/cifar-10-python/cifar-10-batches-py/train_data/data_batch_1'
+
 batch_size = 256
-epochs = 300
+epochs = 1000
 learning_rate = 0.0001
 X = tf.placeholder(tf.float32, [None, 32, 32, 3])
 Y_ = tf.placeholder(tf.float32, [None, 10])
@@ -40,7 +45,16 @@ def nn():
     prediction = G2_Net()
     cost = tf.reduce_mean( tf.nn.softmax_cross_entropy_with_logits(logits = prediction,labels = Y_))
     optimizer = tf.train.AdamOptimizer(lr).minimize(cost)
+    correct = tf.equal(tf.argmax(prediction, 1), tf.argmax(Y_, 1))
+    accuracy = tf.reduce_mean(tf.cast(correct, 'float'))
+
+    tf.summary.scalar("cost", cost)
+    tf.summary.scalar("accuracy", accuracy)
+
+    summary_op = tf.summary.merge_all()
     init = tf.global_variables_initializer()
+    writer = tf.summary.FileWriter(logs_path, graph=tf.get_default_graph())
+
     fo = open(path, 'rb')
     dict_ = pickle.load(fo, encoding='latin1')
     label = dict_['labels']
@@ -51,9 +65,6 @@ def nn():
         temp = np.zeros(10)
         temp[label[i]] = 1
         train_y.append(temp)
-
-
-
 
     train_x = []
     for i in range(int(len(data))):
@@ -75,42 +86,33 @@ def nn():
         cv2.imwrite("img{}.png".format(temp_),img)
         train_x.append(img)
 
-    print(train_y[1])
-    print(train_y[16])
-    print(train_y[31])
 
+    train_size = int(len(train_x)*0.8)
     with tf.Session() as sess:
         sess.run(init)
         for epoch in range(epochs):
             epoch_loss = 0
             i = 0
-            while i < (len(train_x)-batch_size):
+            while i < (train_size-batch_size):
                 start = i
                 end = i+batch_size
                 batch_x = np.array(train_x[start:end])
                 batch_y = np.array(train_y[start:end])
-                # print(batch_y[0]," 01")
-                # print(batch_y[1]," 02")
-                # print(batch_y[2]," 03")
-                # print(batch_y[3]," 04")
                 c = 0
-                _, c, pred = sess.run([optimizer, cost, prediction], feed_dict={X: batch_x, Y_: batch_y, lr: learning_rate, drop_1: 0.25, drop_2: 0.5})
-                # print(pred[0]," 1")
-                # print(pred[1]," 2")
-                # print(pred[2]," 3")
-                # print(pred[3]," 4")
+                _, c, pred, summary = sess.run([optimizer, cost, prediction, summary_op], feed_dict={X: batch_x, Y_: batch_y, lr: learning_rate, drop_1: 0.25, drop_2: 0.5})
+                writer.add_summary(summary, epoch * batch_size + i)
                 epoch_loss += c
                 i+=batch_size
-            print('Epoch', epoch+1, 'completed out of',epochs,'loss:',epoch_loss)
-
-        # correct = tf.equal(tf.argmax(prediction, 1), tf.argmax(Y_, 1))
-        # accuracy = tf.reduce_mean(tf.cast(correct, 'float'))
-        #print('Accuracy:',accuracy.eval({x:, y:}))
+            print('Epoch: ',epoch+1,' completed out of ',epochs,' loss: ',epoch_loss)
+            batch_x = np.array(train_x[0:train_size])
+            batch_y = np.array(train_y[0:train_size])
+            print('Train Data Accuracy: ',accuracy.eval({X: batch_x, Y_:batch_y}))
+            batch_x = np.array(train_x[train_size:len(train_x)])
+            batch_y = np.array(train_y[train_size:len(train_x)])
+            print('Test Data Accuracy: ',accuracy.eval({X: batch_x, Y_:batch_y}))
 
 def main():
     nn()
-
-
 
 if __name__ == "__main__":
     main()
