@@ -8,7 +8,7 @@ Code2 : Implementing a given CNN network for classification on CIFAR-10 Data Set
         For visualizing on tensorboard we keep the logs after each epochs.Hence need to specify the log directory path.
         Also storing the checkpoint after each epoch hence we have to specify it's path.
         
-        Accuracy on ting data: 60%
+        Accuracy on testing data: 60%
         
 Code 3: A  CNN based network for CIFAR-10 classification.
         We have to specify the data path. 
